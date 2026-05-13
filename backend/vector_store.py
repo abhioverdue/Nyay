@@ -6,7 +6,7 @@ for a pg_vector ANN query and everything else stays the same.
 
 import numpy as np
 from typing import Optional
-from models import Judgment, Chunk
+from backend.models import Judgment, Chunk
 import json, hashlib
 
 class VectorStore:
