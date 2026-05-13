@@ -17,11 +17,11 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from consistency_scorer import score as consistency_score
-from graph_rag import get_graph
+from backend.graph_rag import get_graph
 from indexing import build_indexes
-from llm_synthesis import synthesise_citizen, synthesise_researcher
-from models import Judgment
-from retrieval_pipeline import retrieve
+from backend.llm_synthesis import synthesise_citizen, synthesise_researcher
+from backend.models import Judgment
+from backend.retrieval_pipeline import retrieve
 
 app = FastAPI(
     title="Nyay",
