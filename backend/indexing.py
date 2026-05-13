@@ -7,13 +7,13 @@ and build the precedent graph.
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from models import Judgment, Chunk
-from seed_data import JUDGMENTS as RAW_JUDGMENTS, CITATION_GRAPH
-from real_data_loader import load_real_judgments
-from bm25_retriever import get_bm25
-from vector_store import get_store
-from graph_rag import get_graph
-from embeddings import embed
+from backend.models import Judgment, Chunk
+from backend.seed_data import JUDGMENTS as RAW_JUDGMENTS, CITATION_GRAPH
+from backend.real_data_loader import load_real_judgments
+from backend.bm25_retriever import get_bm25
+from backend.vector_store import get_store
+from backend.graph_rag import get_graph
+from backend.embeddings import embed
 import hashlib
 
 def chunk_judgment(j: Judgment) -> list[Chunk]:
