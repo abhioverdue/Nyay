@@ -1,0 +1,12 @@
+myenv/
+data/
+.git
+.gitignore
+README.md
+*.pyc
+__pycache__
+.pytest_cache
+tests/
+scripts/
+run_e2e.ps1
+.DS_Store

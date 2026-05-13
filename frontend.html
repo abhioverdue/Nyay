@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nyay — AI for Indian Courts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#faf6ef;--p2:#f3ede0;--p3:#ede4d0;--p4:#e8ddc8;
+  --ink:#1c1612;--ink2:#3d3228;--ink3:#6b5c4e;--ink4:#9c8878;
+  --tc:#c4622d;--tc2:#e07a45;--tc3:#f0a882;
+  --tcs:rgba(196,98,45,.11);--tcm:rgba(196,98,45,.22);
+  --gold:#b8882a;--golds:rgba(184,136,42,.13);
+  --jade:#2a6e52;--jades:rgba(42,110,82,.11);
+  --red:#a52e2e;--reds:rgba(165,46,46,.11);
+  --bdr:rgba(107,92,78,.16);--bdr2:rgba(107,92,78,.09);--bdr3:rgba(107,92,78,.05);
+  --card:#fff;--nav:rgba(250,246,239,.92);--field:#fff;
+  --sh:0 1px 12px rgba(28,22,18,.06),0 4px 24px rgba(28,22,18,.04);
+  --shl:0 4px 24px rgba(28,22,18,.1),0 12px 48px rgba(28,22,18,.08);
+  --fd:'Playfair Display',Georgia,serif;
+  --fb:'DM Sans',system-ui,sans-serif;
+  --fm:'DM Mono',monospace;
+  --r:12px;--r2:16px;
+}
+body.dark{
+  --p:#10100f;--p2:#171614;--p3:#23211d;--p4:#2c2822;
+  --ink:#f5efe5;--ink2:#e1d5c5;--ink3:#b7a797;--ink4:#7f7266;
+  --tc:#e07a45;--tc2:#f09a6b;--tc3:#ffc4a5;
+  --tcs:rgba(224,122,69,.14);--tcm:rgba(224,122,69,.3);
+  --gold:#d6a747;--golds:rgba(214,167,71,.15);
+  --jade:#5ab48b;--jades:rgba(90,180,139,.14);
+  --red:#e06d6d;--reds:rgba(224,109,109,.14);
+  --bdr:rgba(225,213,197,.16);--bdr2:rgba(225,213,197,.1);--bdr3:rgba(225,213,197,.06);
+  --card:#181715;--nav:rgba(16,16,15,.88);--field:#11110f;
+  --sh:0 1px 12px rgba(0,0,0,.22),0 8px 28px rgba(0,0,0,.18);
+  --shl:0 6px 26px rgba(0,0,0,.32),0 16px 54px rgba(0,0,0,.24);
+}
+html{scroll-behavior:smooth}
+body{background:var(--p);color:var(--ink);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
+
+/* ── NAV ─────────────────────────────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 2.5rem;
+  background:var(--nav);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bdr2);
+}
+.nlogo{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.nmark{
+  width:36px;height:36px;background:var(--tc);border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fd);font-size:21px;color:#fff;font-weight:700;
+  flex-shrink:0;box-shadow:0 2px 12px rgba(196,98,45,.3);
+}
+.nname{font-family:var(--fd);font-size:21px;font-weight:600;color:var(--ink);letter-spacing:-.4px}
+.nsub{font-size:11px;color:var(--ink4);margin-top:-2px;letter-spacing:.01em}
+.nright{display:flex;gap:8px;align-items:center}
+.nbtn{font-size:12px;padding:6px 15px;border-radius:100px;border:1px solid var(--bdr);background:transparent;color:var(--ink3);cursor:pointer;font-family:var(--fb);transition:.15s}
+.nbtn:hover{background:var(--p2);color:var(--ink)}
+.nbtn.p{background:var(--tc);color:#fff;border-color:var(--tc);box-shadow:0 2px 10px rgba(196,98,45,.25)}
+.nbtn.p:hover{background:var(--tc2)}
+.themebtn{height:34px;padding:0 12px;border-radius:999px;display:flex;align-items:center;justify-content:center}
+.apistatus{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 11px;border:1px solid var(--bdr);border-radius:999px;
+  color:var(--ink4);font-size:11px;background:var(--p2);
+}
+.statusdot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px var(--golds)}
+.apistatus.ok .statusdot{background:var(--jade);box-shadow:0 0 0 3px var(--jades)}
+.apistatus.bad .statusdot{background:var(--red);box-shadow:0 0 0 3px var(--reds)}
+
+/* ── LANDING ─────────────────────────────────────────────────────────── */
+#land{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:7rem 2rem 4rem;position:relative;overflow:hidden;
+}
+.lbg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -5%,rgba(196,98,45,.09) 0%,transparent 65%),
+    radial-gradient(ellipse 50% 40% at 90% 90%,rgba(184,136,42,.07) 0%,transparent 55%),
+    radial-gradient(ellipse 35% 35% at 5% 65%,rgba(42,110,82,.05) 0%,transparent 55%);
+}
+.lorn{
+  position:absolute;top:7rem;right:4%;
+  width:340px;height:340px;
+  border:1px solid rgba(196,98,45,.09);border-radius:50%;
+  animation:rslow 45s linear infinite;
+}
+.lorn::before{content:'';position:absolute;inset:28px;border:1px dashed rgba(196,98,45,.06);border-radius:50%}
+.lorn::after{content:'';position:absolute;inset:56px;border:1px solid rgba(196,98,45,.04);border-radius:50%}
+.lorn2{
+  position:absolute;bottom:6%;left:3%;
+  width:200px;height:200px;
+  border:1px solid rgba(184,136,42,.08);border-radius:50%;
+  animation:rslow 60s linear infinite reverse;
+}
+@keyframes rslow{to{transform:rotate(360deg)}}
+
+.ley{
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--tc);font-weight:500;margin-bottom:1.4rem;
+  display:flex;align-items:center;gap:10px;position:relative;z-index:1;
+}
+.ley::before,.ley::after{content:'';height:1px;width:24px;background:currentColor;opacity:.45}
+
+.ltitle{
+  font-family:var(--fd);
+  font-size:clamp(44px,6.5vw,78px);
+  font-weight:700;color:var(--ink);
+  text-align:center;line-height:1.08;
+  letter-spacing:-.025em;max-width:840px;
+  margin-bottom:1.6rem;position:relative;z-index:1;
+}
+.ltitle em{color:var(--tc);font-style:italic}
+
+.lsub{
+  font-size:17px;color:var(--ink3);line-height:1.72;
+  max-width:540px;text-align:center;
+  margin:0 auto 2.8rem;font-weight:300;
+  position:relative;z-index:1;
+}
+
+.lcta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:2.4rem;position:relative;z-index:1}
+.btnp{
+  padding:13px 28px;background:var(--tc);color:#fff;border:none;
+  border-radius:var(--r);font-size:15px;font-weight:500;cursor:pointer;
+  font-family:var(--fb);transition:.2s;
+  box-shadow:0 4px 20px rgba(196,98,45,.3);
+}
+.btnp:hover{background:var(--tc2);transform:translateY(-1px);box-shadow:0 6px 28px rgba(196,98,45,.4)}
+.btns{
+  padding:13px 28px;background:transparent;color:var(--ink2);
+  border:1px solid var(--bdr);border-radius:var(--r);font-size:15px;
+  font-weight:400;cursor:pointer;font-family:var(--fb);transition:.2s;
+}
+.btns:hover{background:var(--p2)}
+
+.lproof{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  max-width:780px;position:relative;z-index:1;
+}
+.proofchip{
+  padding:10px 14px;border:1px solid var(--bdr2);border-radius:999px;
+  background:color-mix(in srgb,var(--card) 72%,transparent);
+  color:var(--ink3);font-size:12px;box-shadow:var(--sh);
+  backdrop-filter:blur(12px);
+}
+.proofchip strong{color:var(--ink2);font-weight:600}
+
+/* ── INFINITE TICKER ─────────────────────────────────────────────────── */
+.ticker-wrap{
+  overflow:hidden;
+  border-top:1px solid var(--bdr2);border-bottom:1px solid var(--bdr2);
+  background:var(--p2);padding:.9rem 0;
+  position:relative;
+}
+.ticker-wrap::before,.ticker-wrap::after{
+  content:'';position:absolute;top:0;bottom:0;width:80px;z-index:10;
+}
+.ticker-wrap::before{left:0;background:linear-gradient(to right,var(--p2),transparent)}
+.ticker-wrap::after{right:0;background:linear-gradient(to left,var(--p2),transparent)}
+
+.ticker-track{
+  display:flex;gap:0;
+  width:max-content;
+  animation:ticker 76s linear infinite;
+}
+.ticker-track:hover{animation-play-state:paused}
+
+@keyframes ticker{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
+
+.tick-item{
+  display:flex;align-items:center;gap:10px;
+  padding:0 2.5rem;flex-shrink:0;
+  border-right:1px solid var(--bdr2);
+}
+.tick-item:last-child{border-right:none}
+.tick-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tick-label{font-size:12px;white-space:nowrap}
+.tick-label strong{font-weight:600;color:var(--ink2)}
+.tick-label span{color:var(--ink4);font-weight:300}
+
+/* ── APP ─────────────────────────────────────────────────────────────── */
+#app{max-width:1300px;margin:0 auto;padding:3rem 2rem 5rem}
+
+.apphd{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:2rem;padding-bottom:1.25rem;
+  border-bottom:1px solid var(--bdr);
+}
+.apptitle{font-family:var(--fd);font-size:22px;font-weight:600;color:var(--ink)}
+.appsub{font-size:12px;color:var(--ink4);margin-top:2px}
+
+.mtoggle{
+  display:flex;background:var(--p2);border:1px solid var(--bdr);
+  border-radius:100px;padding:3px;gap:2px;
+}
+.mbtn{
+  padding:6px 20px;font-size:13px;border:none;cursor:pointer;
+  background:transparent;color:var(--ink3);border-radius:100px;
+  transition:.15s;font-family:var(--fb);font-weight:400;
+}
+.mbtn.active{
+  background:var(--card);color:var(--ink);
+  box-shadow:0 1px 6px rgba(28,22,18,.08);font-weight:500;
+}
+
+/* ── SEARCH ──────────────────────────────────────────────────────────── */
+.swrap{
+  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r2);
+  padding:1.4rem;box-shadow:var(--sh);margin-bottom:1.5rem;
+  transition:.2s;
+}
+.swrap:focus-within{box-shadow:var(--shl);border-color:var(--tcm)}
+.srow{display:flex;gap:10px;align-items:flex-start}
+.sinput{
+  flex:1;padding:12px 16px;
+  background:var(--p);border:1px solid var(--bdr);
+  border-radius:10px;color:var(--ink);font-size:15px;
+  outline:none;font-family:var(--fb);transition:.15s;
+  resize:none;line-height:1.5;min-height:48px;max-height:130px;overflow-y:hidden;
+}
+.sinput:focus{border-color:var(--tc);background:var(--field)}
+.sinput::placeholder{color:var(--ink4)}
+.sbtn{
+  padding:12px 20px;background:var(--tc);color:#fff;border:none;
+  border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;
+  white-space:nowrap;font-family:var(--fb);transition:.18s;
+  display:flex;align-items:center;gap:6px;
+  box-shadow:0 2px 12px rgba(196,98,45,.22);
+}
+.sbtn:hover:not(:disabled){background:var(--tc2);box-shadow:0 4px 18px rgba(196,98,45,.32)}
+.sbtn:disabled{opacity:.4;cursor:default}
+
+.sfilters{display:flex;gap:6px;margin-top:.85rem;flex-wrap:wrap;align-items:center}
+.sfilters + .sfilters{margin-top:.55rem}
+.flabel{font-size:11px;color:var(--ink4);font-weight:500;letter-spacing:.03em}
+.fchip{
+  font-size:12px;padding:4px 13px;background:var(--p);
+  border:1px solid var(--bdr);border-radius:100px;cursor:pointer;
+  color:var(--ink3);transition:.12s;font-family:var(--fb);
+}
+.fchip:hover,.fchip.on{background:var(--tcs);border-color:var(--tc);color:var(--tc)}
+
+.eqrow{
+  display:flex;gap:6px;flex-wrap:wrap;
+  padding-top:.85rem;border-top:1px solid var(--bdr3);margin-top:.5rem;
+}
+.eq{
+  font-size:12px;padding:4px 12px;background:var(--p);
+  border:1px solid var(--bdr);border-radius:100px;cursor:pointer;
+  color:var(--ink4);transition:.12s;
+}
+.eq:hover{border-color:var(--tc);color:var(--tc);background:var(--tcs)}
+
+/* ── PIPELINE STATUS BAR ─────────────────────────────────────────────── */
+.pipe-status{
+  display:flex;align-items:center;gap:0;
+  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
+  overflow:hidden;margin-bottom:1.25rem;box-shadow:var(--sh);
+}
+.pstage{
+  flex:1;padding:.6rem .4rem;text-align:center;
+  border-right:1px solid var(--bdr2);
+  font-size:10px;color:var(--ink4);
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:.3s;
+}
+.pstage:last-child{border-right:none}
+.pstage.done{color:var(--jade);background:var(--jades)}
+.pstage.active{color:var(--tc);background:var(--tcs)}
+.psdot{width:6px;height:6px;border-radius:50%;background:var(--bdr);transition:.3s}
+.pstage.done .psdot{background:var(--jade)}
+.pstage.active .psdot{background:var(--tc);animation:pdot 1s ease-in-out infinite}
+.pstage-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;line-height:1.2}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+/* ── GRID ────────────────────────────────────────────────────────────── */
+.mgrid{display:grid;grid-template-columns:1fr 370px;gap:1.5rem}
+@media(max-width:960px){.mgrid{grid-template-columns:1fr}}
+
+/* ── STATS BAR ───────────────────────────────────────────────────────── */
+.statsbar{
+  display:flex;margin-bottom:1.25rem;
+  border:1px solid var(--bdr);border-radius:var(--r);
+  background:var(--card);overflow:hidden;box-shadow:var(--sh);
+}
+.stat{text-align:center;flex:1;padding:.9rem .4rem;border-right:1px solid var(--bdr2)}
+.stat:last-child{border-right:none}
+.sv{font-family:var(--fd);font-size:22px;font-weight:700;color:var(--tc);line-height:1}
+.sl{font-size:9px;color:var(--ink4);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
+
+/* ── SYNTHESIS ───────────────────────────────────────────────────────── */
+.synbox{
+  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
+  padding:1.5rem;margin-bottom:1.25rem;box-shadow:var(--sh);
+  position:relative;overflow:hidden;
+}
+.synbox::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tc)}
+.synlbl{
+  font-size:10px;color:var(--tc);font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem;
+  display:flex;align-items:center;gap:6px;
+}
+.syntext{font-size:14px;color:var(--ink2);line-height:1.78;white-space:pre-wrap;font-weight:300}
+
+/* ── CARDS ───────────────────────────────────────────────────────────── */
+.card{
+  background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);
+  padding:1.3rem;margin-bottom:1rem;box-shadow:var(--sh);transition:.18s;
+}
+.card:hover{box-shadow:var(--shl);transform:translateY(-1px)}
+.ctop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.85rem;gap:10px}
+.ccourt{font-family:var(--fd);font-size:15px;font-weight:600;color:var(--ink);line-height:1.3}
+.cmeta{font-size:11px;color:var(--ink4);margin-top:3px;font-family:var(--fm)}
+.cbadges{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500}
+.bc{background:var(--reds);color:var(--red)}
+.ba{background:var(--jades);color:var(--jade)}
+.bd{background:rgba(107,92,78,.08);color:var(--ink3)}
+.bst{background:var(--golds);color:var(--gold)}
+.stag{font-size:11px;padding:2px 9px;background:var(--tcs);color:var(--tc);border-radius:4px;font-weight:500;border:1px solid var(--tcm)}
+.cjudge{font-size:11px;color:var(--ink4);margin-bottom:.75rem;font-style:italic}
+.csec{font-size:10px;color:var(--tc);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.3rem}
+.ctext{font-size:13px;color:var(--ink3);line-height:1.65;margin-bottom:.75rem;font-weight:300}
+.ctext.r{color:var(--ink2);font-weight:400}
+.precsec{margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--bdr3)}
+.preclbl{font-size:10px;color:var(--ink4);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em}
+.precchain{display:flex;flex-wrap:wrap;gap:5px}
+.pnode{font-size:11px;padding:2px 8px;background:var(--p2);border:1px solid var(--bdr);border-radius:4px;color:var(--ink3);font-family:var(--fm)}
+
+.scores{display:flex;margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--bdr3)}
+.sci{flex:1;text-align:center;padding:0 3px;border-right:1px solid var(--bdr3)}
+.sci:last-child{border-right:none}
+.scl{font-size:9px;color:var(--ink4);margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em}
+.scv{font-size:12px;font-weight:600;color:var(--ink2);font-family:var(--fm)}
+.scbar{height:2px;background:var(--bdr2);border-radius:2px;margin-top:3px;overflow:hidden}
+.scfill{height:100%;border-radius:2px;background:linear-gradient(to right,var(--tc),var(--tc2));transition:width .55s ease}
+
+/* ── FLAGS ───────────────────────────────────────────────────────────── */
+.fwrap{margin-bottom:1rem}
+.fhead{font-size:10px;color:var(--gold);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;gap:6px}
+.flagcard{background:rgba(184,136,42,.05);border:1px solid rgba(184,136,42,.2);border-radius:var(--r);padding:1rem;margin-bottom:.6rem}
+.flaghd{display:flex;align-items:center;gap:8px;margin-bottom:.5rem}
+.flagico{width:22px;height:22px;background:var(--golds);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.flagtitle{font-size:13px;font-weight:600;color:var(--gold)}
+.flagtext{font-size:12px;color:var(--ink3);line-height:1.6;font-weight:300}
+.simmeter{display:flex;align-items:center;gap:8px;margin:.6rem 0}
+.simbar{flex:1;height:4px;background:var(--p3);border-radius:2px;overflow:hidden}
+.simfill{height:100%;background:var(--gold);border-radius:2px;transition:width .5s ease}
+.simpct{font-size:11px;color:var(--gold);font-weight:600;font-family:var(--fm)}
+.flagfooter{font-size:11px;color:var(--gold);font-weight:500}
+
+/* ── RIGHT PANEL ─────────────────────────────────────────────────────── */
+.rptitle{font-size:10px;color:var(--ink4);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem;padding-bottom:.5rem;border-bottom:1px solid var(--bdr2);margin-top:1.25rem}
+.rptitle:first-child{margin-top:0}
+
+/* ── GRAPH ───────────────────────────────────────────────────────────── */
+.gcont{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+.ghd{padding:.75rem 1rem;border-bottom:1px solid var(--bdr2);display:flex;align-items:center;justify-content:space-between}
+.ghdtitle{font-size:12px;font-weight:500;color:var(--ink2)}
+.gleg{display:flex;gap:10px}
+.gli{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink4)}
+.gldot{width:7px;height:7px;border-radius:50%}
+#gsvg{width:100%;height:290px;display:block;background:var(--p)}
+
+/* ── SECTION BARS ────────────────────────────────────────────────────── */
+.sbcont{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;box-shadow:var(--sh)}
+.sbrow{display:flex;align-items:center;gap:10px;margin-bottom:.65rem}
+.sbrow:last-child{margin-bottom:0}
+.sbsec{font-size:11px;color:var(--ink2);font-weight:500;width:110px;flex-shrink:0;font-family:var(--fm);font-size:10px}
+.sbbwrap{flex:1;height:5px;background:var(--p2);border-radius:3px;overflow:hidden}
+.sbbar{height:100%;border-radius:3px;background:linear-gradient(to right,var(--tc),var(--tc2));transition:width .6s ease}
+.sbct{font-size:11px;color:var(--ink4);font-family:var(--fm);width:18px;text-align:right}
+
+.sysgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.syscard{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:.8rem;box-shadow:var(--sh)}
+.sysv{font-family:var(--fd);font-size:19px;color:var(--tc);font-weight:700;line-height:1}
+.sysl{font-size:9px;color:var(--ink4);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.sysnote{margin-top:.75rem;font-size:11px;line-height:1.55;color:var(--ink3);background:var(--p2);border:1px solid var(--bdr2);border-radius:var(--r);padding:.75rem}
+
+/* ── PIPELINE TRACE ──────────────────────────────────────────────────── */
+.ptrace{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+.pthd{padding:.75rem 1rem;background:var(--p2);border-bottom:1px solid var(--bdr2);cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.pttitle{font-size:12px;font-weight:500;color:var(--ink2)}
+.ptchev{font-size:10px;color:var(--ink4);transition:.2s}
+.ptbody{padding:.75rem 1rem;display:none}
+.ptbody.open{display:block}
+.ptstage{margin-bottom:.75rem}
+.ptstage:last-child{margin-bottom:0}
+.ptsl{font-size:10px;color:var(--tc);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem}
+.ptrow{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--bdr3)}
+.ptrow:last-child{border-bottom:none}
+.ptkey{font-size:11px;color:var(--ink3);font-family:var(--fm)}
+.ptval{font-size:11px;font-weight:500;color:var(--ink2);font-family:var(--fm)}
+
+/* ── EMPTY ───────────────────────────────────────────────────────────── */
+.empty{padding:5rem 2rem;text-align:center}
+.emptyico{font-size:44px;margin-bottom:1rem;opacity:.2}
+.emptytitle{font-family:var(--fd);font-size:22px;color:var(--ink2);margin-bottom:.6rem}
+.emptytext{font-size:14px;color:var(--ink3);line-height:1.7;max-width:420px;margin:0 auto;font-weight:300}
+
+/* ── TOOLTIP ─────────────────────────────────────────────────────────── */
+.tt{position:fixed;background:var(--ink);color:var(--p);border-radius:9px;padding:9px 13px;font-size:12px;pointer-events:none;z-index:9998;max-width:230px;line-height:1.5;display:none;font-family:var(--fb);box-shadow:0 4px 24px rgba(0,0,0,.22)}
+
+/* ── ANIMATIONS ──────────────────────────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .35s ease forwards}
+.fu0{animation-delay:.0s;opacity:0}
+.fu1{animation-delay:.06s;opacity:0}
+.fu2{animation-delay:.12s;opacity:0}
+.fui{opacity:0} /* set by js with per-index delay */
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--p2)}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nlogo" onclick="goto('land')">
+    <div class="nmark">न</div>
+    <div><div class="nname">Nyay</div><div class="nsub">AI for Indian Courts</div></div>
+  </div>
+  <div class="nright">
+    <button class="nbtn" onclick="goto('land')">About</button>
+    <div class="apistatus" id="apiStatus"><span class="statusdot"></span><span id="apiText">Checking API</span></div>
+    <button class="nbtn themebtn" id="themeBtn" onclick="toggleTheme()" aria-label="Switch to dark mode" title="Toggle theme">Dark</button>
+    <button class="nbtn p" onclick="goto('app')">Try Nyay →</button>
+  </div>
+</nav>
+
+<!-- LANDING -->
+<section id="land">
+  <div class="lbg"></div>
+  <div class="lorn"></div>
+  <div class="lorn2"></div>
+
+  <div class="ley">Graph-RAG &nbsp;·&nbsp; Precedent Chains &nbsp;·&nbsp; Consistency Scoring</div>
+
+  <h1 class="ltitle">
+    Justice should be<br><em>searchable.</em>
+  </h1>
+
+  <p class="lsub">
+    Nyay is an AI research system for Indian district court judgments. Ask in plain language. Understand how courts have decided cases like yours — and where decisions have been inconsistent across similar facts.
+  </p>
+
+  <div class="lcta">
+    <button class="btnp" onclick="goto('app')">Start searching →</button>
+  </div>
+
+  <div class="lproof">
+    <div class="proofchip"><strong>Hybrid retrieval</strong> across facts and legal terms</div>
+    <div class="proofchip"><strong>Precedent-aware</strong> citation network context</div>
+    <div class="proofchip"><strong>Consistency checks</strong> for similar fact patterns</div>
+  </div>
+</section>
+
+<!-- INFINITE TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-track" id="ticker"></div>
+</div>
+
+<!-- APP -->
+<section id="app">
+
+  <div class="apphd">
+    <div>
+      <div class="apptitle">Search judgments</div>
+      <div class="appsub">Hybrid retrieval · Graph RAG · Consistency scoring</div>
+    </div>
+    <div class="mtoggle">
+      <button class="mbtn active" id="bc" onclick="setMode('citizen')">Citizen</button>
+      <button class="mbtn" id="br" onclick="setMode('researcher')">Researcher</button>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="swrap">
+    <div class="srow">
+      <textarea class="sinput" id="qi" rows="1"
+        placeholder="e.g. cheque bounce Maharashtra hand loan insufficient funds…"
+        oninput="ar(this)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();doQ()}"></textarea>
+      <button class="sbtn" id="sb" onclick="doQ()">
+        <span id="bt">Search</span><span>↗</span>
+      </button>
+    </div>
+    <div class="sfilters">
+      <span class="flabel">Section:</span>
+      <span class="fchip on" data-filter="section" onclick="tf(this,'section','all')">All</span>
+      <span class="fchip" data-filter="section" onclick="tf(this,'section','Section 138 NI Act')">S.138 NI Act</span>
+      <span class="fchip" data-filter="section" onclick="tf(this,'section','Section 420 IPC')">S.420 IPC</span>
+      <span class="fchip" data-filter="section" onclick="tf(this,'section','Section 304B IPC')">S.304B IPC</span>
+    </div>
+    <div class="sfilters">
+      <span class="flabel">State:</span>
+      <span class="fchip on" data-filter="state" onclick="tf(this,'state','all')">All</span>
+      <span class="fchip" data-filter="state" onclick="tf(this,'state','Maharashtra')">MH</span>
+      <span class="fchip" data-filter="state" onclick="tf(this,'state','Tamil Nadu')">TN</span>
+      <span class="fchip" data-filter="state" onclick="tf(this,'state','Delhi')">DL</span>
+      <span class="fchip" data-filter="state" onclick="tf(this,'state','Uttar Pradesh')">UP</span>
+    </div>
+    <div class="sfilters">
+      <span class="flabel">Outcome:</span>
+      <span class="fchip on" data-filter="outcome" onclick="tf(this,'outcome','all')">All</span>
+      <span class="fchip" data-filter="outcome" onclick="tf(this,'outcome','convicted')">Convicted</span>
+      <span class="fchip" data-filter="outcome" onclick="tf(this,'outcome','acquitted')">Acquitted</span>
+    </div>
+    <div class="eqrow">
+      <span class="eq" onclick="sq(this.textContent)">Cheque bounce Maharashtra hand loan</span>
+      <span class="eq" onclick="sq(this.textContent)">Section 420 fraud investment acquitted</span>
+      <span class="eq" onclick="sq(this.textContent)">Dowry death burns cruelty conviction</span>
+      <span class="eq" onclick="sq(this.textContent)">Cheque issued as security NI Act</span>
+      <span class="eq" onclick="sq(this.textContent)">Notice beyond 30 days acquittal</span>
+    </div>
+  </div>
+
+  <!-- PIPELINE STATUS -->
+  <div class="pipe-status" id="pipeStatus" style="display:none">
+    <div class="pstage" id="ps0"><div class="psdot"></div><div class="pstage-label">BM25</div></div>
+    <div class="pstage" id="ps1"><div class="psdot"></div><div class="pstage-label">Dense</div></div>
+    <div class="pstage" id="ps2"><div class="psdot"></div><div class="pstage-label">RRF Fusion</div></div>
+    <div class="pstage" id="ps3"><div class="psdot"></div><div class="pstage-label">Reranker</div></div>
+    <div class="pstage" id="ps4"><div class="psdot"></div><div class="pstage-label">Graph RAG</div></div>
+    <div class="pstage" id="ps5"><div class="psdot"></div><div class="pstage-label">Consistency</div></div>
+    <div class="pstage" id="ps6"><div class="psdot"></div><div class="pstage-label">LLM Synthesis</div></div>
+  </div>
+
+  <div id="ra">
+    <div class="empty">
+      <div class="emptyico">⚖</div>
+      <div class="emptytitle">Ask about any Indian court case</div>
+      <div class="emptytext">Search by section, facts, or plain language. Nyay retrieves relevant judgments, traces their precedent chains, and flags outcome inconsistencies across similar cases.</div>
+    </div>
+  </div>
+
+</section>
+
+<div class="tt" id="tt"></div>
+
+<script>
+const API = 'http://localhost:8765';
+let mode = 'citizen', pipeTimer = null;
+let filters = {section:'all', state:'all', outcome:'all'};
+
+function applyTheme(theme){
+  const dark = theme === 'dark';
+  document.body.classList.toggle('dark', dark);
+  const btn = document.getElementById('themeBtn');
+  if(btn){
+    btn.textContent = dark ? 'Light' : 'Dark';
+    btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+  localStorage.setItem('nyay-theme', theme);
+}
+
+function toggleTheme(){
+  applyTheme(document.body.classList.contains('dark') ? 'light' : 'dark');
+}
+
+applyTheme(localStorage.getItem('nyay-theme') || 'light');
+
+async function checkApi(){
+  const pill=document.getElementById('apiStatus');
+  const label=document.getElementById('apiText');
+  try{
+    const res=await fetch(`${API}/health`);
+    if(!res.ok)throw new Error(res.status);
+    const h=await res.json();
+    pill.classList.remove('bad');pill.classList.add('ok');
+    label.textContent=`API ready · ${h.judgments} cases`;
+  }catch(e){
+    pill.classList.remove('ok');pill.classList.add('bad');
+    label.textContent='Demo fallback';
+  }
+}
+
+// ── Ticker ────────────────────────────────────────────────────────────────────
+const TICKS = [
+  {dot:'var(--tc)',  label:'<strong>BM25 + Dense Hybrid</strong> <span>- exact legal terms + semantic similarity</span>'},
+  {dot:'var(--gold)',label:'<strong>Reciprocal Rank Fusion</strong> <span>- TREC-standard score merging</span>'},
+  {dot:'var(--jade)',label:'<strong>Cross-Encoder Reranking</strong> <span>- bi-encoder recall, precise rerank</span>'},
+  {dot:'var(--red)', label:'<strong>Citation Graph</strong> <span>- precedent traversal and lineage context</span>'},
+  {dot:'var(--tc2)', label:'<strong>Consistency Scorer</strong> <span>- outcome divergence detection</span>'},
+  {dot:'var(--gold)',label:'<strong>Dual synthesis mode</strong> <span>- citizen summary + researcher analysis</span>'},
+  {dot:'var(--jade)',label:'<strong>pgvector + PostgreSQL</strong> <span>- embedding search with structured metadata</span>'},
+  {dot:'var(--tc)',  label:'<strong>LegalBERT embeddings</strong> <span>- domain-specific dense retrieval</span>'},
+  {dot:'var(--red)', label:'<strong>Outcome divergence</strong> <span>- surface conflicts in similar judgments</span>'},
+  {dot:'var(--tc2)', label:'<strong>FastAPI + async uvicorn</strong> <span>- responsive local research backend</span>'},
+];
+
+(function buildTicker(){
+  const track = document.getElementById('ticker');
+  // Duplicate for infinite loop
+  const all = [...TICKS, ...TICKS];
+  all.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'tick-item';
+    el.innerHTML = `<div class="tick-dot" style="background:${t.dot}"></div><div class="tick-label">${t.label}</div>`;
+    track.appendChild(el);
+  });
+})();
+
+checkApi();
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function goto(id){document.getElementById(id).scrollIntoView({behavior:'smooth'})}
+function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,130)+'px'}
+function setMode(m){
+  mode=m;
+  document.getElementById('bc').classList.toggle('active',m==='citizen');
+  document.getElementById('br').classList.toggle('active',m==='researcher');
+}
+function tf(el,type,v){
+  document.querySelectorAll(`.fchip[data-filter="${type}"]`).forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  filters[type]=v;
+}
+function sq(q){const i=document.getElementById('qi');i.value=q;ar(i);doQ()}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function bc2(o){return{convicted:'bc',acquitted:'ba',dismissed:'bd',settled:'bst'}[o?.toLowerCase()]||'bd'}
+function sbar(v,m=1){
+  const p=Math.min(100,Math.round((v/m)*100));
+  return`<div class="scbar"><div class="scfill" style="width:${p}%"></div></div>`;
+}
+
+// ── Pipeline status bar ───────────────────────────────────────────────────────
+function startPipe(){
+  const ps=document.getElementById('pipeStatus');
+  ps.style.display='flex';
+  for(let i=0;i<7;i++){
+    const el=document.getElementById('ps'+i);
+    if(el){el.className='pstage';el.querySelector('.psdot').style.background=''}
+  }
+  let cur=0;
+  pipeTimer=setInterval(()=>{
+    if(cur>0)document.getElementById('ps'+(cur-1))?.classList.replace('active','done');
+    if(cur<7){document.getElementById('ps'+cur)?.classList.add('active');cur++}
+    else clearInterval(pipeTimer);
+  },240);
+}
+function donePipe(){
+  clearInterval(pipeTimer);
+  for(let i=0;i<7;i++)document.getElementById('ps'+i)?.classList.replace('active','done');
+}
+
+// ── Query ─────────────────────────────────────────────────────────────────────
+async function doQ(){
+  const q=document.getElementById('qi').value.trim();
+  if(!q)return;
+  clearInterval(pipeTimer);
+  const btn=document.getElementById('sb');
+  document.getElementById('bt').textContent='Searching';
+  btn.disabled=true;
+  document.getElementById('ra').innerHTML='';
+  startPipe();
+  goto('app');
+
+  try{
+    const res=await fetch(`${API}/query`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        query:q,
+        mode,
+        top_k:5,
+        use_llm:true,
+        section:filters.section,
+        state:filters.state,
+        outcome:filters.outcome
+      })
+    });
+    if(!res.ok) throw new Error(res.status);
+    const data=await res.json();
+    donePipe();
+    render(data);
+  }catch(e){
+    donePipe();
+    document.getElementById('apiStatus')?.classList.add('bad');
+    const apiText=document.getElementById('apiText');
+    if(apiText)apiText.textContent='Demo fallback';
+    render(getDemo(q));
+  }finally{
+    btn.disabled=false;
+    document.getElementById('bt').textContent='Search';
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(data){
+  let h='';
+
+  // Stats
+  h+=`<div class="statsbar fu fu0">
+    <div class="stat"><div class="sv">${data.results.length}</div><div class="sl">Cases retrieved</div></div>
+    <div class="stat"><div class="sv">${data.consistency_flags.length}</div><div class="sl">Inconsistencies</div></div>
+    <div class="stat"><div class="sv">${data.debug_info?.graph_context_added?.length||0}</div><div class="sl">Precedents added</div></div>
+    <div class="stat"><div class="sv">${data.latency_ms}ms</div><div class="sl">Latency</div></div>
+  </div>`;
+
+  // Synthesis
+  if(data.synthesis){
+    h+=`<div class="synbox fu fu1">
+      <div class="synlbl">⚖ ${mode==='citizen'?'Plain-language summary':'Legal research analysis'}</div>
+      <div class="syntext">${esc(data.synthesis)}</div>
+    </div>`;
+  }
+
+  h+=`<div class="mgrid"><div id="lcol">`;
+
+  // Consistency flags
+  if(data.consistency_flags.length){
+    h+=`<div class="fwrap fu fu2">
+      <div class="fhead">⚠ Outcome inconsistencies detected</div>`;
+    data.consistency_flags.forEach(f=>{
+      h+=`<div class="flagcard">
+        <div class="flaghd"><div class="flagico">⚠</div><div class="flagtitle">Potential inconsistency</div></div>
+        <div class="flagtext">${esc(f.explanation)}</div>
+        <div class="simmeter">
+          <div class="simbar"><div class="simfill" style="width:${Math.round(f.similarity_score*100)}%"></div></div>
+          <span class="simpct">${Math.round(f.similarity_score*100)}%</span>
+        </div>
+        <div class="flagfooter">${f.outcome_a} → ${f.outcome_b} on ${Math.round(f.similarity_score*100)}% similar facts</div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // Result cards
+  const maxRR=Math.max(...data.results.map(r=>r.rerank_score),0.001);
+  data.results.forEach((r,i)=>{
+    h+=`<div class="card fu" style="animation-delay:${i*.07}s;opacity:0">
+      <div class="ctop">
+        <div>
+          <div class="ccourt">${esc(r.court)}</div>
+          <div class="cmeta">${esc(r.case_id)} &nbsp;·&nbsp; ${r.date} &nbsp;·&nbsp; ${r.state}</div>
+        </div>
+        <div class="cbadges">
+          <span class="badge ${bc2(r.outcome)}">${r.outcome.toUpperCase()}</span>
+          <span class="stag">${esc(r.section_cited)}</span>
+        </div>
+      </div>
+      <div class="cjudge">Judge: ${esc(r.judge)}</div>
+      <div class="csec">Facts</div>
+      <div class="ctext">${esc(r.facts_summary)}</div>
+      <div class="csec">Legal reasoning</div>
+      <div class="ctext r">${esc(r.legal_reasoning)}</div>
+      ${r.precedent_chain?.length?`
+        <div class="precsec">
+          <div class="preclbl">Precedent chain (Graph RAG)</div>
+          <div class="precchain">${r.precedent_chain.map(p=>`<span class="pnode">→ ${esc(p.case_id)} <span style="color:var(--ink4);font-size:10px">(depth ${p.depth})</span></span>`).join('')}</div>
+        </div>`:''}
+      <div class="scores">
+        <div class="sci"><div class="scl">BM25</div><div class="scv">${r.bm25_score.toFixed(2)}</div>${sbar(r.bm25_score,5)}</div>
+        <div class="sci"><div class="scl">Dense</div><div class="scv">${r.dense_score.toFixed(3)}</div>${sbar(r.dense_score)}</div>
+        <div class="sci"><div class="scl">RRF</div><div class="scv">${r.fusion_score.toFixed(4)}</div>${sbar(r.fusion_score,0.05)}</div>
+        <div class="sci"><div class="scl">Rerank</div><div class="scv">${r.rerank_score.toFixed(3)}</div>${sbar(r.rerank_score,maxRR)}</div>
+      </div>
+    </div>`;
+  });
+
+  h+=`</div><div id="rcol">`;
+
+  // Citation graph
+  h+=`<div class="rptitle">Citation graph</div>
+  <div class="gcont">
+    <div class="ghd">
+      <span class="ghdtitle">Precedent network</span>
+      <div class="gleg">
+        <div class="gli"><div class="gldot" style="background:var(--red)"></div>Convicted</div>
+        <div class="gli"><div class="gldot" style="background:var(--jade)"></div>Acquitted</div>
+        <div class="gli"><div class="gldot" style="background:var(--tc);border:2px solid var(--tc)"></div>Query result</div>
+      </div>
+    </div>
+    <svg id="gsvg"></svg>
+  </div>`;
+
+  const meta=data.metadata||{};
+  const corpus=meta.corpus||{};
+  const quality=meta.retrieval_quality||{};
+  if(corpus.total_judgments||meta.filtered_count!==undefined){
+    h+=`<div class="rptitle">System signal</div>
+    <div class="sysgrid">
+      <div class="syscard"><div class="sysv">${corpus.total_judgments||'18'}</div><div class="sysl">Indexed cases</div></div>
+      <div class="syscard"><div class="sysv">${meta.filtered_count ?? data.results.length}</div><div class="sysl">Filter pool</div></div>
+      <div class="syscard"><div class="sysv">${corpus.graph?.edges ?? data.graph_data?.edges?.length ?? 0}</div><div class="sysl">Citation edges</div></div>
+      <div class="syscard"><div class="sysv">${quality.top_rerank_score ?? '-'}</div><div class="sysl">Top rerank</div></div>
+    </div>
+    <div class="sysnote">Backend-wired filters, corpus analytics, graph traversal, reranking, and consistency scoring are returned by the API for this query.</div>`;
+  }
+
+  // Section breakdown
+  const sc={};
+  data.results.forEach(r=>{sc[r.section_cited]=(sc[r.section_cited]||0)+1});
+  if(Object.keys(sc).length){
+    const mx=Math.max(...Object.values(sc));
+    h+=`<div class="rptitle">Section breakdown</div><div class="sbcont">`;
+    Object.entries(sc).forEach(([s,c])=>{
+      h+=`<div class="sbrow">
+        <div class="sbsec">${esc(s.replace('Section ','S.'))}</div>
+        <div class="sbbwrap"><div class="sbbar" style="width:${Math.round(c/mx*100)}%"></div></div>
+        <div class="sbct">${c}</div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // Pipeline trace — researcher mode
+  if(mode==='researcher'&&data.debug_info){
+    const di=data.debug_info;
+    h+=`<div class="rptitle">Pipeline trace</div>
+    <div class="ptrace">
+      <div class="pthd" onclick="togglePT(this)">
+        <span class="pttitle">Stage-by-stage debug</span>
+        <span class="ptchev">▼</span>
+      </div>
+      <div class="ptbody open">
+        <div class="ptstage">
+          <div class="ptsl">Stage 1a — BM25</div>
+          ${(di.bm25_hits||[]).slice(0,5).map(x=>`<div class="ptrow"><span class="ptkey">${esc(x.case_id)}</span><span class="ptval">${(x.score||0).toFixed(3)}</span></div>`).join('')||'<div style="font-size:11px;color:var(--ink4)">No hits</div>'}
+        </div>
+        <div class="ptstage">
+          <div class="ptsl">Stage 1b — Dense</div>
+          ${(di.dense_hits||[]).slice(0,5).map(x=>`<div class="ptrow"><span class="ptkey">${esc(x.case_id)}</span><span class="ptval">${(x.score||0).toFixed(3)}</span></div>`).join('')||'<div style="font-size:11px;color:var(--ink4)">No hits</div>'}
+        </div>
+        <div class="ptstage">
+          <div class="ptsl">Stage 1c — RRF scores</div>
+          ${Object.entries(di.rrf_scores||{}).slice(0,5).map(([k,v])=>`<div class="ptrow"><span class="ptkey">${esc(k)}</span><span class="ptval">${v.toFixed(5)}</span></div>`).join('')}
+        </div>
+        <div class="ptstage">
+          <div class="ptsl">Stage 2 — Post-rerank</div>
+          ${(di.post_rerank_order||[]).map(x=>`<div class="ptrow"><span class="ptkey">${esc(x.case_id)}</span><span class="ptval" style="color:var(--jade)">${(x.rerank_score||0).toFixed(3)}</span></div>`).join('')}
+        </div>
+        <div class="ptstage">
+          <div class="ptsl">Stage 3 — Graph context added</div>
+          <div style="font-size:11px;color:var(--ink3);font-family:var(--fm);line-height:1.6">${(di.graph_context_added||[]).join(', ')||'none (root judgments retrieved directly)'}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  h+=`</div></div>`;
+  document.getElementById('ra').innerHTML=h;
+  renderGraph(data.graph_data);
+}
+
+function togglePT(hd){
+  const b=hd.nextElementSibling;
+  b.classList.toggle('open');
+  hd.querySelector('.ptchev').textContent=b.classList.contains('open')?'▼':'▶';
+}
+
+// ── D3 Graph ──────────────────────────────────────────────────────────────────
+function renderGraph(gd){
+  const svg=document.getElementById('gsvg');
+  if(!svg||!gd?.nodes?.length)return;
+  const W=svg.clientWidth||370,H=290;
+  const cm={convicted:'#a52e2e',acquitted:'#2a6e52',dismissed:'#6b5c4e',settled:'#b8882a'};
+
+  const sim=d3.forceSimulation(gd.nodes)
+    .force('link',d3.forceLink(gd.edges).id(d=>d.id).distance(70))
+    .force('charge',d3.forceManyBody().strength(-160))
+    .force('center',d3.forceCenter(W/2,H/2))
+    .force('collision',d3.forceCollide(22));
+
+  const sv=d3.select('#gsvg').attr('viewBox',`0 0 ${W} ${H}`);
+  sv.selectAll('*').remove();
+
+  const defs=sv.append('defs');
+  defs.append('marker').attr('id','arr').attr('viewBox','0 -4 8 8')
+    .attr('refX',19).attr('refY',0).attr('markerWidth',5).attr('markerHeight',5)
+    .attr('orient','auto').append('path').attr('d','M0,-4L8,0L0,4')
+    .attr('fill','rgba(196,98,45,.4)');
+
+  const gf=defs.append('filter').attr('id','gl');
+  gf.append('feGaussianBlur').attr('stdDeviation','2.5').attr('result','b');
+  const fm=gf.append('feMerge');
+  fm.append('feMergeNode').attr('in','b');
+  fm.append('feMergeNode').attr('in','SourceGraphic');
+
+  sv.append('g').selectAll('line').data(gd.edges).join('line')
+    .attr('stroke','rgba(196,98,45,.28)').attr('stroke-width',1.5)
+    .attr('marker-end','url(#arr)');
+
+  const nd=sv.append('g').selectAll('g').data(gd.nodes).join('g')
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y})
+      .on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y})
+      .on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null}));
+
+  nd.append('circle')
+    .attr('r',d=>d.is_query_result?14:9)
+    .attr('fill',d=>cm[d.outcome]||'#6b5c4e')
+    .attr('fill-opacity',d=>d.is_query_result?.9:.45)
+    .attr('stroke',d=>d.is_query_result?cm[d.outcome]:'transparent')
+    .attr('stroke-width',2.5)
+    .attr('filter',d=>d.is_query_result?'url(#gl)':'none');
+
+  nd.append('text').text(d=>d.outcome[0].toUpperCase())
+    .attr('text-anchor','middle').attr('dy','0.35em')
+    .attr('fill','#fff').attr('font-size',d=>d.is_query_result?10:8)
+    .attr('font-weight','700').style('pointer-events','none');
+
+  const tt=document.getElementById('tt');
+  nd.on('mouseover',(e,d)=>{
+    tt.style.display='block';
+    tt.innerHTML=`<strong style="font-family:var(--fd)">${esc(d.id)}</strong><br>${esc(d.court)}<br>${esc(d.section)} · <em>${d.outcome}</em><br>${d.date} · ${d.state}`;
+  }).on('mousemove',e=>{
+    tt.style.left=(e.clientX+14)+'px';tt.style.top=(e.clientY-10)+'px';
+  }).on('mouseout',()=>{tt.style.display='none'});
+
+  const linkEl=sv.selectAll('line');
+  sim.on('tick',()=>{
+    linkEl.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+           .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nd.attr('transform',d=>`translate(${Math.max(14,Math.min(W-14,d.x))},${Math.max(14,Math.min(H-14,d.y))})`);
+  });
+}
+
+// ── Demo data (used when backend is offline) ──────────────────────────────────
+function getDemo(q){
+  return{
+    results:[
+      {case_id:'CC_138_2019_MH_001',court:'Judicial Magistrate First Class, Pune',date:'2019-03-14',judge:'Shri R.K. Deshmukh',section_cited:'Section 138 NI Act',outcome:'convicted',state:'Maharashtra',facts_summary:'Accused issued cheque of Rs. 5,00,000 for hand loan. Dishonoured due to insufficient funds. Notice served within 30 days. Accused failed to repay within 15 days.',legal_reasoning:'All ingredients of Section 138 proved beyond reasonable doubt. Cheque issued for legally enforceable debt. Statutory notice duly served. Non-payment established. Convicted — 1 year RI + Rs. 7,50,000 fine.',bm25_score:3.82,dense_score:0.741,fusion_score:0.03279,rerank_score:0.498,citations:['CC_138_SC_2014_IND'],precedent_chain:[{case_id:'CC_138_SC_2014_IND',court:'Supreme Court of India',depth:1}]},
+      {case_id:'CC_138_2020_MH_002',court:'Judicial Magistrate First Class, Nashik',date:'2020-07-22',judge:'Smt. P.V. Kulkarni',section_cited:'Section 138 NI Act',outcome:'acquitted',state:'Maharashtra',facts_summary:'Accused issued cheque of Rs. 4,80,000. Dishonoured. Demand notice issued on 32nd day — beyond the 30-day statutory window.',legal_reasoning:'Notice issued beyond 30-day period is fatally defective. Section 138 complaint not maintainable. Accused acquitted.',bm25_score:3.20,dense_score:0.689,fusion_score:0.03200,rerank_score:0.417,citations:[],precedent_chain:[]},
+      {case_id:'CC_138_2023_MH_015',court:'Judicial Magistrate First Class, Aurangabad',date:'2023-01-30',judge:'Shri A.B. Joshi',section_cited:'Section 138 NI Act',outcome:'convicted',state:'Maharashtra',facts_summary:'Accused issued cheque of Rs. 4,50,000 for hand loan. Dishonoured. Accused denied knowledge of cheque.',legal_reasoning:'Section 139 NI Act raises presumption in favour of complainant. Bare denial insufficient to rebut statutory presumption. Convicted — Rs. 9,00,000 fine.',bm25_score:2.95,dense_score:0.651,fusion_score:0.02900,rerank_score:0.387,citations:['CC_138_SC_2014_IND'],precedent_chain:[{case_id:'CC_138_SC_2014_IND',court:'Supreme Court of India',depth:1}]},
+    ],
+    consistency_flags:[{case_id_a:'CC_138_2019_MH_001',case_id_b:'CC_138_2020_MH_002',similarity_score:.85,outcome_a:'convicted',outcome_b:'acquitted',divergence_score:.85,explanation:'CC_138_2019_MH_001 (convicted) and CC_138_2020_MH_002 (acquitted) share 85% factual similarity but reached opposite outcomes. Both involve Section 138 NI Act cheque bounce of similar amounts in Maharashtra. Divergence is attributed to the notice timing defect — a jurisdictional requirement — in the acquitted case.'}],
+    synthesis:`Based on Section 138 NI Act cases in Maharashtra:\n\n✓ Courts consistently convict when: (1) cheque issued for legally enforceable debt, (2) dishonoured due to insufficient funds, (3) statutory demand notice served within 30 days, (4) accused fails to pay within 15 days of notice.\n\n⚠ Common reasons for acquittal: Notice issued beyond 30-day window (fatal, jurisdictional defect), original cheque not produced, accused proves prior cash repayment, handwriting expert raises reasonable doubt.\n\n📌 Key takeaway: The 30-day notice window is jurisdictional — missing it is an automatic acquittal regardless of all other facts. If you have received a legal notice, consult a lawyer immediately. Do not ignore it.`,
+    debug_info:{
+      bm25_hits:[{case_id:'CC_138_2023_MH_015',score:3.82},{case_id:'CC_138_2019_MH_001',score:3.20},{case_id:'CC_138_2020_MH_002',score:2.95}],
+      dense_hits:[{case_id:'CC_138_2019_MH_001',score:0.741},{case_id:'CC_138_2020_MH_002',score:0.689},{case_id:'CC_138_2023_MH_015',score:0.651}],
+      rrf_scores:{'CC_138_2023_MH_015':0.03279,'CC_138_2019_MH_001':0.03200,'CC_138_2020_MH_002':0.03101},
+      post_rerank_order:[{case_id:'CC_138_2023_MH_015',rerank_score:.498},{case_id:'CC_138_2020_MH_002',rerank_score:.417},{case_id:'CC_138_2019_MH_001',rerank_score:.387}],
+      graph_context_added:['CC_138_SC_2014_IND']
+    },
+    latency_ms:312,
+    graph_data:{
+      nodes:[
+        {id:'CC_138_2019_MH_001',court:'JMFC Pune',section:'S.138 NI Act',outcome:'convicted',date:'2019-03-14',state:'MH',is_query_result:true},
+        {id:'CC_138_2020_MH_002',court:'JMFC Nashik',section:'S.138 NI Act',outcome:'acquitted',date:'2020-07-22',state:'MH',is_query_result:true},
+        {id:'CC_138_2023_MH_015',court:'JMFC Aurangabad',section:'S.138 NI Act',outcome:'convicted',date:'2023-01-30',state:'MH',is_query_result:true},
+        {id:'CC_138_SC_2014_IND',court:'Supreme Court of India',section:'S.138 NI Act',outcome:'convicted',date:'2014-08-19',state:'National',is_query_result:false},
+      ],
+      edges:[
+        {source:'CC_138_2019_MH_001',target:'CC_138_SC_2014_IND'},
+        {source:'CC_138_2023_MH_015',target:'CC_138_SC_2014_IND'},
+      ]
+    },
+    metadata:{
+      applied_filters:{section:filters.section,state:filters.state,outcome:filters.outcome},
+      filtered_count:3,
+      corpus:{total_judgments:18,graph:{nodes:18,edges:5}},
+      retrieval_quality:{top_rerank_score:.498,avg_fusion_score:.03126}
+    }
+  };
+}
+</script>
+</body>
+</html>
