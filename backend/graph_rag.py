@@ -10,7 +10,7 @@ This is the key architectural differentiator from standard RAG.
 """
 
 import networkx as nx
-from models import Judgment, GraphNode
+from backend.models import Judgment, GraphNode
 
 class PrecedentGraph:
     def __init__(self):
