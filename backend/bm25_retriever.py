@@ -6,7 +6,7 @@ Catches exact legal references: section numbers, case names, terms like
 
 from rank_bm25 import BM25Okapi
 import re
-from models import Judgment
+from backend.models import Judgment
 
 class BM25Retriever:
     def __init__(self):
