@@ -13,7 +13,7 @@ import anthropic
 import httpx
 from dotenv import load_dotenv
 
-from models import RetrievalResult, Judgment, ConsistencyFlag
+from backend.models import RetrievalResult, Judgment, ConsistencyFlag
 
 BACKEND_DIR = Path(__file__).resolve().parent
 ROOT_DIR = BACKEND_DIR.parent
