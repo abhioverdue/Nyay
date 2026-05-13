@@ -9,11 +9,11 @@ This three-stage pipeline is what separates this from "chat with PDF" RAG.
 """
 
 import numpy as np
-from models import Judgment, RetrievalResult, Chunk
-from embeddings import embed_single, embed
-from bm25_retriever import get_bm25
-from vector_store import get_store
-from graph_rag import get_graph
+from backend.models import Judgment, RetrievalResult, Chunk
+from backend.embeddings import embed_single, embed
+from backend.bm25_retriever import get_bm25
+from backend.vector_store import get_store
+from backend.graph_rag import get_graph
 
 # ── Reciprocal Rank Fusion ────────────────────────────────────────────────────
 
