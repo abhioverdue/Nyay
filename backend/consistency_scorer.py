@@ -14,8 +14,8 @@ potential judicial inconsistency or regional bias across similar cases.
 """
 
 import numpy as np
-from models import RetrievalResult, ConsistencyFlag
-from embeddings import embed
+from backend.models import RetrievalResult, ConsistencyFlag
+from backend.embeddings import embed
 
 SIMILARITY_THRESHOLD = 0.72
 
