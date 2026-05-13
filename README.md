@@ -11,47 +11,47 @@ Built for the Activate AI Fellowship — May 2026.
 
 ```
                      ┌─────────────────────────────────────────┐
-                     │           USER QUERY                     │
+                     │           USER QUERY                    │
                      └──────────────────┬──────────────────────┘
                                         │
               ┌─────────────────────────▼─────────────────────────┐
-              │              STAGE 1: HYBRID RETRIEVAL             │
-              │                                                     │
+              │              STAGE 1: HYBRID RETRIEVAL            │
+              │                                                   │
               │  ┌──────────────┐      ┌──────────────────────┐   │
               │  │  BM25 (exact │      │  Dense (LegalBERT    │   │
-              │  │  keyword)    │      │  embeddings + cosine) │   │
+              │  │  keyword)    │      │  embeddings + cosine)│   │
               │  └──────┬───────┘      └──────────┬───────────┘   │
-              │         │                          │               │
-              │         └──────────┬───────────────┘               │
-              │                    │                               │
+              │         │                          │              │
+              │         └──────────┬───────────────┘              │
+              │                    │                              │
               │          ┌─────────▼──────────┐                   │
-              │          │ Reciprocal Rank     │                   │
-              │          │ Fusion (RRF)        │                   │
-              │          └─────────────────────┘                   │
-              └─────────────────────┬───────────────────────────────┘
+              │          │ Reciprocal Rank     │                  │
+              │          │ Fusion (RRF)        │                  │
+              │          └─────────────────────┘                  │
+              └─────────────────────┬─────────────────────────────┘
                                     │ top-15 candidates
               ┌─────────────────────▼───────────────────────────────┐
-              │              STAGE 2: RERANKING                      │
-              │                                                       │
-              │  Cross-encoder: scores query-document pairs jointly  │
-              │  (bi-encoder stage 1 = fast; cross-encoder = precise)│
+              │              STAGE 2: RERANKING                     │
+              │                                                     │
+              │  Cross-encoder: scores query-document pairs jointly │
+              │  (bi-encoder stage 1 = fast; cross-encoder = precise│
               └─────────────────────┬───────────────────────────────┘
                                     │ top-5 results
               ┌─────────────────────▼───────────────────────────────┐
-              │              STAGE 3: GRAPH RAG                      │
-              │                                                       │
-              │  Citation graph (NetworkX directed graph)            │
+              │              STAGE 3: GRAPH RAG                     │
+              │                                                     │
+              │  Citation graph (NetworkX directed graph)           │
               │  → traverse precedent chains (BFS, 2 hops)          │
-              │  → enrich LLM context with ancestor judgments        │
+              │  → enrich LLM context with ancestor judgments       │
               └──────────┬────────────────────────────┬─────────────┘
                          │                            │
             ┌────────────▼───────────┐   ┌───────────▼───────────────┐
-            │   LLM SYNTHESIS        │   │  CONSISTENCY SCORER        │
-            │   (Claude Sonnet)      │   │                            │
-            │   Citizen mode:        │   │  Pairwise cosine sim on    │
-            │   plain language       │   │  fact embeddings           │
-            │   Researcher mode:     │   │  → flag divergent outcomes │
-            │   legal analysis       │   │  on similar facts          │
+            │   LLM SYNTHESIS        │   │  CONSISTENCY SCORER       │
+            │   (Claude Sonnet)      │   │                           │
+            │   Citizen mode:        │   │  Pairwise cosine sim on   │
+            │   plain language       │   │  fact embeddings          │
+            │   Researcher mode:     │   │  → flag divergent outcomes│
+            │   legal analysis       │   │  on similar facts         │
             └────────────────────────┘   └───────────────────────────┘
 ```
 
@@ -173,43 +173,6 @@ suicide induced by harassment Section 304B
 diary letters depression rebuttal presumption
 ```
 
----
-
-## Production Upgrade Path
-
-| Component | Sandbox | Production |
-|-----------|---------|-----------|
-| Embeddings | TF-IDF (offline) | LegalBERT / all-MiniLM-L6-v2 |
-| Vector store | In-memory numpy | pgvector on PostgreSQL |
-| Reranker | Dot-product on richer embeddings | cross-encoder/ms-marco-MiniLM-L-6-v2 |
-| Data | 18 synthetic judgments | eCourts bulk data (50k+ PDFs via PyMuPDF OCR) |
-| LLM | Claude Sonnet | Claude Sonnet (same) |
-| Deployment | Local uvicorn | Docker + gunicorn + nginx |
-
----
-
-## Interview Talking Points
-
-**"Why pgvector over Chroma?"**
-Because you need JOIN between vector similarity and structured metadata in a single query. Chroma is a standalone store — you can't do `WHERE section_cited = '138 NI Act'` inside the vector search without a second round-trip.
-
-**"What's RRF doing?"**
-Reciprocal Rank Fusion merges two ranked lists (BM25 and dense) without requiring score normalisation. Score(d) = Σ 1/(k + rank_i(d)). It's the standard TREC evaluation algorithm and handles the scale mismatch between BM25 raw scores and cosine similarities.
-
-**"Why a cross-encoder reranker?"**
-Bi-encoders encode query and document independently — fast for retrieval but approximate. Cross-encoders see the query and document together — accurate but O(n) on corpus size. Two-stage: bi-encoder for recall, cross-encoder for precision. This is the production pattern at every major search company.
-
-**"How is Graph RAG different from standard RAG?"**
-Standard RAG: retrieve k documents, stuff into context. Graph RAG: retrieve k documents, then traverse the citation graph to find what those documents relied on, and include that lineage in context. The LLM now reasons over the full legal argument chain, not just one isolated judgment.
-
-**"What's the consistency scorer measuring?"**
-Pairwise cosine similarity on fact embeddings across retrieved results. If two cases have >0.72 cosine similarity on their fact summaries but different outcomes (convicted vs acquitted), we flag it. The divergence score = similarity weight × outcome difference. This surfaces potential judicial inconsistency — same facts, different justice.
-
-**"How would you scale this to 50,000 judgments?"**
-Replace the in-memory TF-IDF embeddings with LegalBERT vectors stored in pgvector. Use HNSW index on pgvector for approximate nearest neighbour search (O(log n) instead of O(n)). OCR the eCourts PDFs with PyMuPDF. The rest of the pipeline is unchanged.
-
----
-
 ## Project Structure
 
 ```
@@ -231,40 +194,6 @@ judicial-rag/
 │   └── frontend.html            # Single-file frontend with D3 citation graph
 └── README.md
 ```
-
----
-
-## Deployment
-
-### Deploy to Railway (Recommended)
-
-Simplest path for FAANG interviews. Live in 2 minutes.
-
-1. Push your repo to GitHub
-2. Go to [railway.app](https://railway.app) → Connect GitHub
-3. Create new project → Select this repo
-4. Railway auto-detects `Dockerfile`
-5. Add env var: `ANTHROPIC_API_KEY=sk-...`
-6. Deploy
-7. Share link: `https://nyay-abc123.railway.app`
-
-Interviewer tests: `curl https://nyay-abc123.railway.app/health` → returns `{"status": "ready"}`
-
-### Deploy to Render
-
-Also works. Use `render.yaml` config.
-
-1. Go to [render.com](https://render.com) → Connect GitHub
-2. Create "Web Service" from Blueprint
-3. Select this repo + paste `render.yaml`
-4. Add `ANTHROPIC_API_KEY`
-5. Deploy
-
-### Local Docker
-
-```bash
-docker build -t nyay .
-docker run -e ANTHROPIC_API_KEY=sk-... -p 8000:8000 nyay
 ```
 
 ### Troubleshooting
