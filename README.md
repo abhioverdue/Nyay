@@ -194,10 +194,3 @@ judicial-rag/
 │   └── frontend.html            # Single-file frontend with D3 citation graph
 └── README.md
 ```
-```
-
-### Troubleshooting
-
-- **Status: indexing** — First request takes 10-15s to load embeddings. Client waits. Subsequent requests are instant.
-- **401 Unauthorized** — Missing `ANTHROPIC_API_KEY`
-- **500 error on /query** — Check logs. LLM synthesis errors gracefully fall back to retrieval-only results.
