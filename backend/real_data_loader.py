@@ -20,7 +20,7 @@ import tarfile
 from pathlib import Path
 from typing import Any
 
-from .models import Judgment
+from backend.models import Judgment
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
